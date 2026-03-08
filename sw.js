@@ -1,34 +1,77 @@
-var CACHE = 'din-biltjek-v1';
+const CACHE = 'din-biltjek-v1';
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js'
+];
 
-self.addEventListener('install', function(e) {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', function(e) {
+// Install — cache alle assets
+self.addEventListener('install', e => {
   e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(k) { return k !== CACHE; })
-            .map(function(k) { return caches.delete(k); })
-      );
-    })
+    caches.open(CACHE)
+      .then(c => c.addAll(ASSETS.map(url => new Request(url, {cache: 'reload'}))))
+      .then(() => self.skipWaiting())
+      .catch(err => console.warn('[SW] Cache fejl:', err))
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', function(e) {
-  // Only cache same-origin requests
-  if (e.request.url.startsWith(self.location.origin)) {
+// Activate — ryd gamle caches
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+// Fetch — network-first for Firebase/CDN, cache-first for lokale filer
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+
+  const url = new URL(e.request.url);
+
+  // Firebase og eksterne APIs — network first, fallback til cache
+  if (
+    url.hostname.includes('firebaseapp.com') ||
+    url.hostname.includes('firestore.googleapis.com') ||
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('gstatic.com') ||
+    url.hostname.includes('emailjs.com') ||
+    url.hostname.includes('cdnjs.cloudflare.com') ||
+    url.hostname.includes('jsdelivr.net')
+  ) {
     e.respondWith(
-      caches.match(e.request).then(function(cached) {
-        return cached || fetch(e.request).then(function(resp) {
-          if (resp && resp.status === 200 && resp.type === 'basic') {
-            var clone = resp.clone();
-            caches.open(CACHE).then(function(c) { c.put(e.request, clone); });
+      fetch(e.request)
+        .then(r => {
+          if (r.ok) {
+            const clone = r.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
           }
-          return resp;
+          return r;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Lokale filer — cache first, network fallback
+  e.respondWith(
+    caches.match(e.request)
+      .then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(r => {
+          if (r.ok) {
+            const clone = r.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return r;
         });
       })
-    );
-  }
+      .catch(() => caches.match('./index.html'))
+  );
 });

@@ -127,6 +127,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);padding
 .reminder-card.high{border-left-color:var(--red);}
 .reminder-card.medium{border-left-color:var(--accent);}
 .reminder-card.done{opacity:.5;}
+.reminder-card.waiting{border-left-color:#9c27b0;opacity:.9;}
 
 /* ── REPORT ── */
 .report-section{background:var(--bg2);padding:14px;border-radius:10px;margin-bottom:12px;border:1px solid var(--border);}
@@ -373,7 +374,24 @@ input[type="file"]{display:none;}
     <div class="modal-header"><span id="checkTitle">📝 Nyt biltjek</span><button onclick="closeModal('checkModal')">×</button></div>
     <div class="modal-body">
       <div class="form-group"><label>Bil *</label><select id="cVehicle" onchange="renderDiagram()"></select></div>
-      <div class="form-group"><label>Chauffør *</label><select id="cDriver"></select></div>
+
+      <!-- BILBYTTE TOGGLE -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+          <input type="checkbox" id="cBilbytte" onchange="toggleBilbytte()" style="width:18px;height:18px;accent-color:var(--accent);">
+          🔄 Bilbytte (skift af chauffør)
+        </label>
+      </div>
+      <!-- Afgående chauffør (kun ved bilbytte) -->
+      <div id="bilbytteRow" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px;border-left:3px solid var(--accent);">
+        <div style="font-size:12px;color:var(--accent);font-weight:bold;margin-bottom:6px;">⚠️ Skader registreres på den AFGÅENDE chauffør</div>
+        <div class="form-group" style="margin-bottom:6px;"><label>Afgående chauffør (har haft bilen) *</label><select id="cDriverOut"></select></div>
+        <div class="form-group" style="margin-bottom:0;"><label>Ny chauffør (overtager bilen) *</label><select id="cDriverIn"></select></div>
+      </div>
+      <!-- Normal chauffør -->
+      <div id="normalDriverRow">
+        <div class="form-group"><label>Chauffør *</label><select id="cDriver"></select></div>
+      </div>
 
       <!-- BILTYPE toggle -->
       <div class="section-hdr">Biltype</div>
@@ -505,6 +523,40 @@ input[type="file"]{display:none;}
     <div class="modal-footer">
       <button class="btn btn-gray" style="margin:0;" onclick="closeModal('fixDateModal')">Annuller</button>
       <button class="btn btn-success" style="margin:0;" onclick="confirmFixReminder()">✅ Marker fixet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AFVENTER MODAL ══ -->
+<div id="waitModal" class="modal">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-header">⏸️ Sæt på vent <button onclick="closeModal('waitModal')">×</button></div>
+    <div class="modal-body">
+      <div id="waitAlarmInfo" style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;"></div>
+      <div class="form-group">
+        <label>Årsag til vent *</label>
+        <select id="waitReason">
+          <option value="">Vælg årsag...</option>
+          <option value="Afventer reservedel">Afventer reservedel</option>
+          <option value="Afventer værksted">Afventer værksted</option>
+          <option value="Afventer godkendelse">Afventer godkendelse</option>
+          <option value="Afventer chauffør">Afventer chauffør</option>
+          <option value="Planlagt til senere">Planlagt til senere</option>
+          <option value="Andet">Andet</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Uddybning (valgfri)</label>
+        <textarea id="waitNote" rows="2" placeholder="Beskriv hvad der afventes..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Forventet klar dato (valgfri)</label>
+        <input type="date" id="waitDate">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" style="margin:0;" onclick="closeModal('waitModal')">Annuller</button>
+      <button class="btn" style="margin:0;background:var(--accent);color:#0f1923;" onclick="confirmWaitReminder()">⏸️ Sæt på vent</button>
     </div>
   </div>
 </div>
@@ -1226,6 +1278,8 @@ function startNewCheck(){
   document.getElementById('checkTitle').textContent='📝 Nyt biltjek';
   ['cCondition','cMechanical'].forEach(function(id){document.getElementById(id).value='';});
   ['cKm','cKmService'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('cBilbytte').checked=false;
+  toggleBilbytte();
   populateCheckSelects(); renderEquipment(); renderDriverChks();
   document.getElementById('photoPreview').innerHTML='';
   openModal('checkModal');
@@ -1264,8 +1318,19 @@ function populateCheckSelects(){
   var dh='<option value="">Vælg chauffør</option>';
   appData.drivers.forEach(function(d){dh+='<option value="'+d.id+'">'+d.name+'</option>';});
   document.getElementById('cDriver').innerHTML=dh;
-  // Auto-set vtype from selected vehicle
+  // Bilbytte selects
+  var dh2='<option value="">Vælg afgående chauffør</option>';
+  appData.drivers.forEach(function(d){dh2+='<option value="'+d.id+'">'+d.name+'</option>';});
+  document.getElementById('cDriverOut').innerHTML=dh2;
+  var dh3='<option value="">Vælg ny chauffør</option>';
+  appData.drivers.forEach(function(d){dh3+='<option value="'+d.id+'">'+d.name+'</option>';});
+  document.getElementById('cDriverIn').innerHTML=dh3;
   renderDiagram();
+}
+function toggleBilbytte(){
+  var on=document.getElementById('cBilbytte').checked;
+  document.getElementById('bilbytteRow').style.display=on?'block':'none';
+  document.getElementById('normalDriverRow').style.display=on?'none':'block';
 }
 
 // ── DIAGRAM ──
@@ -1450,8 +1515,18 @@ function removePhoto(i){currentPhotos.splice(i,1);renderPhotos();}
 // ── SAVE CHECK ──
 function saveCheck(){
   var vId=document.getElementById('cVehicle').value;
-  var dId=document.getElementById('cDriver').value;
-  if(!vId||!dId){showToast('Vælg bil og chauffør',false,'error');return;}
+  var isBilbytte=document.getElementById('cBilbytte').checked;
+  var dId, dIdOut, dIdIn;
+  if(isBilbytte){
+    dIdOut=document.getElementById('cDriverOut').value;
+    dIdIn=document.getElementById('cDriverIn').value;
+    if(!vId||!dIdOut||!dIdIn){showToast('Vælg bil, afgående og ny chauffør',false,'error');return;}
+    if(dIdOut===dIdIn){showToast('Afgående og ny chauffør må ikke være den samme',false,'error');return;}
+    dId=dIdIn; // Ny chauffør ejer tjekket
+  } else {
+    dId=document.getElementById('cDriver').value;
+    if(!vId||!dId){showToast('Vælg bil og chauffør',false,'error');return;}
+  }
   var v=appData.vehicles.find(function(x){return x.id==vId;});
   var d=appData.drivers.find(function(x){return x.id==dId;});
   var km=parseInt(document.getElementById('cKm').value)||0;
@@ -1474,6 +1549,30 @@ function saveCheck(){
     date:new Date().toISOString()
   };
 
+  // ── BILBYTTE: tilknyt skader til afgående chauffør ──
+  if(isBilbytte && currentDamages.length>0){
+    var dOut=appData.drivers.find(function(x){return x.id==dIdOut;});
+    var handoverCheck={
+      id:Date.now()+1,
+      vehicleId:vId, driverId:dIdOut,
+      vehicle:v.reg+' – '+v.brand,
+      driver:dOut?dOut.name:'Afgående chauffør',
+      vtype:currentCheckVtype,
+      damages:currentDamages.slice(),
+      photos:currentPhotos.slice(),
+      equipment:{}, driverChecks:{}, mechanical:'',
+      km:km, kmService:0,
+      condition:'Skader registreret ved bilbytte – ny chauffør: '+(d?d.name:''),
+      date:new Date().toISOString(),
+      bilbytte:true, bilbytteNyChauffoer:d?d.name:''
+    };
+    autoCreateReminders(handoverCheck,v);
+    appData.checks.push(handoverCheck);
+    // Ryd skader fra det nye tjek (ny chauffør starter rent)
+    check.damages=[];
+    showToast('🔄 Skader tilknyttet afgående chauffør: '+(dOut?dOut.name:''),true);
+  }
+
   // ── AUTO-REMINDERS ──
   autoCreateReminders(check,v);
 
@@ -1485,6 +1584,9 @@ function saveCheck(){
   }
 
   saveData(); closeModal('checkModal'); updateAll();
+  // Reset bilbytte
+  document.getElementById('cBilbytte').checked=false;
+  toggleBilbytte();
   showToast(editingCheckId?'Biltjek opdateret!':'Biltjek gemt!',true);
   editingCheckId=null;
 }
@@ -1606,21 +1708,28 @@ function loadReminders(){
       } else { noVehicle.push(r); }
     });
     function renderCard(r){
-      var overdue=!r.done&&r.date<today;
-      var cls='reminder-card'+(r.priority==='hoej'?' high':r.priority==='mellem'?' medium':'')+(r.done?' done':'');
+      var overdue=!r.done&&!r.waiting&&r.date<today;
+      var cls='reminder-card'+(r.priority==='hoej'?' high':r.priority==='mellem'?' medium':'')+(r.done?' done':r.waiting?' waiting':'');
       var c='<div class="'+cls+'">';
       c+='<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
       c+='<div style="flex:1;">';
       if(overdue)c+='<div style="color:var(--red);font-size:11px;font-weight:bold;margin-bottom:3px;">⚠️ OVERSKREDET</div>';
+      if(r.waiting)c+='<div style="color:#9c27b0;font-size:11px;font-weight:bold;margin-bottom:3px;">⏸️ AFVENTER'+( r.waitReason?' – '+escHtml(r.waitReason):'')+( r.waitDate?' · Klar: '+fmtDateShort(r.waitDate):'' )+'</div>';
       if(r.autoCreated)c+='<div style="color:var(--accent);font-size:10px;margin-bottom:3px;">🤖 AUTO</div>';
       c+='<div style="font-weight:bold;'+(r.done?'text-decoration:line-through;color:var(--text3);':'')+'">'+escHtml(r.message)+'</div>';
       if(r.note)c+='<div style="color:var(--text2);font-size:12px;">'+escHtml(r.note)+'</div>';
+      if(r.waiting&&r.waitNote)c+='<div style="color:#ce93d8;font-size:12px;margin-top:3px;">💬 '+escHtml(r.waitNote)+'</div>';
       c+='<div style="font-size:11px;color:var(--text3);margin-top:4px;">📅 Frist: '+fmtDateShort(r.date)+' · '+r.priority.toUpperCase()+'</div>';
       if(r.done&&r.fixedDate)c+='<div style="font-size:11px;color:var(--green);margin-top:2px;">✅ Fixet: '+fmtDateShort(r.fixedDate)+(r.fixedNote?' – '+escHtml(r.fixedNote):'')+'</div>';
       c+='</div>';
       c+='<div style="display:flex;flex-direction:column;gap:4px;margin-left:8px;">';
       if(!r.done){
         c+='<button onclick="openFixDateModal('+r.id+')" style="background:var(--green);color:white;border:none;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:12px;">✓ Fix</button>';
+        if(!r.waiting){
+          c+='<button onclick="openWaitModal('+r.id+')" style="background:#9c27b0;color:white;border:none;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:12px;">⏸️</button>';
+        } else {
+          c+='<button onclick="clearWait('+r.id+')" style="background:var(--bg4);color:var(--text2);border:none;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:12px;title="Fjern ventestat">▶</button>';
+        }
       } else {
         c+='<button onclick="undoFixReminder('+r.id+')" style="background:var(--bg4);color:var(--text2);border:none;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:12px;">↩</button>';
       }
@@ -1631,14 +1740,16 @@ function loadReminders(){
     // Grouped by vehicle — collapsible
     Object.keys(groups).sort().forEach(function(veh){
       var grp=groups[veh];
-      var openCount=grp.filter(function(r){return !r.done;}).length;
-      var overdueCount=grp.filter(function(r){return !r.done&&r.date<today;}).length;
+      var openCount=grp.filter(function(r){return !r.done&&!r.waiting;}).length;
+      var waitCount=grp.filter(function(r){return r.waiting&&!r.done;}).length;
+      var overdueCount=grp.filter(function(r){return !r.done&&!r.waiting&&r.date<today;}).length;
       var collapseId='vgrp_'+veh.replace(/[^a-zA-Z0-9]/g,'_');
       h+='<div style="margin-bottom:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">';
       h+='<div onclick="toggleGroup(\''+collapseId+'\')" style="background:var(--bg3);padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">';
       h+='<div style="font-weight:bold;color:var(--text);">🚐 '+escHtml(veh)+'</div>';
       h+='<div style="display:flex;gap:6px;align-items:center;">';
       if(overdueCount)h+='<span style="background:var(--red);color:white;border-radius:10px;padding:2px 8px;font-size:11px;">'+overdueCount+' overskredet</span>';
+      if(waitCount)h+='<span style="background:#9c27b0;color:white;border-radius:10px;padding:2px 8px;font-size:11px;">⏸️ '+waitCount+' afventer</span>';
       if(openCount)h+='<span style="background:var(--accent);color:#0f1923;border-radius:10px;padding:2px 8px;font-size:11px;">'+openCount+' åben</span>';
       else h+='<span style="background:var(--green);color:white;border-radius:10px;padding:2px 8px;font-size:11px;">✓ Alt OK</span>';
       h+='<span style="color:var(--text3);font-size:16px;" id="arr_'+collapseId+'">▼</span>';
@@ -1696,6 +1807,36 @@ function confirmFixReminder(){
 function undoFixReminder(id){
   var r=appData.reminders.find(function(x){return x.id===id;});
   if(r){r.done=false;r.fixedDate=null;r.fixedNote=null;saveData();loadReminders();updateReminderBadge();}
+}
+
+// ── AFVENTER / VENT ──
+var waitingReminderId=null;
+function openWaitModal(id){
+  var r=appData.reminders.find(function(x){return x.id===id;});
+  if(!r)return;
+  waitingReminderId=id;
+  document.getElementById('waitReason').value='';
+  document.getElementById('waitNote').value='';
+  document.getElementById('waitDate').value='';
+  var info=document.getElementById('waitAlarmInfo');
+  info.innerHTML='<strong>'+escHtml(r.message)+'</strong>'+(r.vehicle?'<br>🚐 '+escHtml(r.vehicle):'')+'<br>📅 Frist: '+fmtDateShort(r.date);
+  openModal('waitModal');
+}
+function confirmWaitReminder(){
+  var r=appData.reminders.find(function(x){return x.id===waitingReminderId;});
+  if(!r)return;
+  var reason=document.getElementById('waitReason').value;
+  if(!reason){showToast('Vælg en årsag',false,'error');return;}
+  r.waiting=true;
+  r.waitReason=reason;
+  r.waitNote=document.getElementById('waitNote').value.trim();
+  r.waitDate=document.getElementById('waitDate').value||null;
+  saveData();closeModal('waitModal');loadReminders();updateReminderBadge();
+  showToast('⏸️ Alarm sat på vent',true);
+}
+function clearWait(id){
+  var r=appData.reminders.find(function(x){return x.id===id;});
+  if(r){r.waiting=false;r.waitReason=null;r.waitNote=null;r.waitDate=null;saveData();loadReminders();updateReminderBadge();}
 }
 function deleteReminder(id){
   appData.reminders=appData.reminders.filter(function(r){return r.id!==id;});
@@ -1806,7 +1947,7 @@ function updateAll(){
   if(rc){
     var recent=appData.checks.slice(-3).reverse();
     rc.innerHTML=recent.length?'<div class="section-hdr">Seneste biltjek</div>'+recent.map(function(c){
-      return'<div class="card" onclick="editCheck('+c.id+')" style="cursor:pointer;">'+'<div class="card-title">'+c.vehicle+'</div><div style="color:var(--text2);font-size:13px;">'+c.driver+' · '+fmtDateShort(c.date)+'</div>'+((c.damages||[]).length?'<span class="tag tag-red">🚨 '+c.damages.length+' skade(r)</span>':'<span class="tag tag-green">✓ OK</span>')+'</div>';
+      return'<div class="card" onclick="editCheck('+c.id+')" style="cursor:pointer;">'+'<div class="card-title">'+c.vehicle+(c.bilbytte?' <span style="font-size:11px;background:#9c27b0;color:white;padding:2px 6px;border-radius:8px;">🔄 Bilbytte</span>':'')+' </div><div style="color:var(--text2);font-size:13px;">'+c.driver+' · '+fmtDateShort(c.date)+(c.bilbytte?' <span style="color:#ce93d8;">← '+escHtml(c.bilbytteNyChauffoer||'')+'</span>':'')+' </div>'+((c.damages||[]).length?'<span class="tag tag-red">🚨 '+c.damages.length+' skade(r)</span>':'<span class="tag tag-green">✓ OK</span>')+'</div>';
     }).join(''):'';
   }
   updateReminderBadge();

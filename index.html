@@ -423,6 +423,17 @@ input[type="file"]{display:none;}
     <div class="modal-body">
       <div class="form-group"><label>Bil *</label><select id="cVehicle" onchange="renderDiagram()"></select></div>
 
+      <!-- UDFØRT AF -->
+      <div class="form-group">
+        <label>👷 Udført af *</label>
+        <select id="cInspector">
+          <option value="">— Vælg bilansvarlig —</option>
+          <option value="Riffai">Riffai</option>
+          <option value="Khaled">Khaled</option>
+          <option value="Masri">Masri</option>
+        </select>
+      </div>
+
       <!-- BILBYTTE TOGGLE -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
@@ -1409,6 +1420,7 @@ function editCheck(id){
   // Set vehicle select
   setTimeout(function(){
     document.getElementById('cVehicle').value=c.vehicleId||'';
+    document.getElementById('cInspector').value=c.inspector||'';
     document.getElementById('cDriver').value=c.driverId||'';
     document.getElementById('vtBtn_van').classList.toggle('active',currentCheckVtype==='van');
     document.getElementById('vtBtn_chassis').classList.toggle('active',currentCheckVtype==='chassis');
@@ -1649,11 +1661,15 @@ function saveCheck(){
   var kmSvc=parseInt(document.getElementById('cKmService').value)||0;
   var mech=document.getElementById('cMechanical').value.trim();
 
+  var inspector=document.getElementById('cInspector').value;
+  if(!inspector){showToast('Vælg bilansvarlig (Udført af)',false,'error');return;}
+
   var check={
     id:editingCheckId||Date.now(),
     vehicleId:vId, driverId:dId,
     vehicle:v.reg+' – '+v.brand,
     driver:d.name,
+    inspector:inspector,
     vtype:currentCheckVtype,
     damages:currentDamages.slice(),
     photos:currentPhotos.slice(),
@@ -1703,6 +1719,7 @@ function saveCheck(){
   // Reset bilbytte
   document.getElementById('cBilbytte').checked=false;
   toggleBilbytte();
+  document.getElementById('cInspector').value='';
   showToast(editingCheckId?'Biltjek opdateret!':'Biltjek gemt!',true);
   editingCheckId=null;
 }
@@ -1785,6 +1802,7 @@ function loadChecks(){
       h+='<div class="card">';
       h+='<div class="card-title">'+c.vehicle+'</div>';
       h+='<div style="color:var(--text2);font-size:13px;">👤 '+c.driver+'</div>';
+      if(c.inspector)h+='<div style="color:var(--accent);font-size:12px;margin-top:2px;">👷 Udført af: <strong>'+c.inspector+'</strong></div>';
       if(hasDmg)h+='<span class="tag tag-red">🚨 '+c.damages.length+' skade(r)</span>';
       else h+='<span class="tag tag-green">✓ Ingen skader</span>';
       if(c.km)h+='<span class="tag tag-blue">📏 '+c.km+' km</span>';
@@ -2037,7 +2055,7 @@ function loadReports(){
     anyIssue=true;
     h+='<div class="report-check-item" onclick="showReportDetail('+c.id+')">';
     h+='<div style="display:flex;justify-content:space-between;"><strong>'+c.vehicle+'</strong><span style="font-size:11px;color:var(--text3);">'+fmtDateShort(c.date)+'</span></div>';
-    h+='<div style="font-size:12px;color:var(--text2);">👤 '+c.driver+'</div>';
+    h+='<div style="font-size:12px;color:var(--text2);">👤 '+c.driver+(c.inspector?' <span style="color:var(--accent);">| 👷 '+c.inspector+'</span>':'')+'</div>';
     if(dmgs)h+='<span class="badge-nej">🚨 '+dmgs+' skade(r)</span> ';
     if(nejItems.length)h+='<span class="badge-nej">⚠️ '+nejItems.length+' mangler</span> ';
     if(liftBad)h+='<span class="badge-nej">🐢 Lift langsom</span> ';
@@ -2055,7 +2073,8 @@ function showReportDetail(id){
   if(!c)return;
   document.getElementById('reportDetailTitle').textContent=c.vehicle+' – '+fmtDateShort(c.date);
   var allItems=EQUIPMENT_ITEMS.concat(DRIVER_CHECK_ITEMS);
-  var h='<p style="color:var(--text2);margin-bottom:12px;">Chauffør: <strong>'+c.driver+'</strong></p>';
+  var h='<p style="color:var(--text2);margin-bottom:6px;">Chauffør: <strong>'+c.driver+'</strong></p>';
+  if(c.inspector)h+='<p style="color:var(--accent);margin-bottom:12px;font-size:13px;">👷 Udført af: <strong>'+c.inspector+'</strong></p>';
   if((c.damages||[]).length){
     h+='<h4 style="color:var(--red);margin-bottom:8px;">🚨 Skader</h4>';
     c.damages.forEach(function(d,i){h+='<div class="damage-item"><div class="damage-title">#'+(i+1)+' '+d.label+'</div><div style="font-size:13px;">'+d.desc+'</div></div>';});

@@ -2,7 +2,7 @@
 <html lang="da">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Din-Biltjek</title>
 <meta name="application-name" content="Din-Biltjek">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,7 +30,7 @@
   --text:#e8edf4;--text2:#9aafc7;--text3:#5c7a9e;
   --border:#2e3d56;--shadow:0 4px 20px rgba(0,0,0,0.4);
 }
-body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);padding-bottom:72px;min-height:100vh;}
+html,body{height:100%;height:100dvh;}body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;overflow:hidden;}
 
 /* ── LOGIN ── */
 .login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0f1923 0%,#1a2535 100%);}
@@ -40,33 +40,41 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);padding
 .login-sub{text-align:center;font-size:13px;color:var(--text2);margin-bottom:28px;}
 
 /* ── HEADER ── */
-.header{background:var(--bg2);color:var(--text);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:90;}
-.header-title{font-size:18px;font-weight:bold;color:var(--accent);}
-.icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 11px;border-radius:7px;cursor:pointer;font-size:14px;}
+.header{background:var(--bg2);color:var(--text);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);z-index:90;flex-shrink:0;}
+.header-title{font-size:15px;font-weight:bold;color:var(--accent);}
+.icon-btn{background:transparent;border:none;color:var(--text);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.icon-btn:hover,.icon-btn:active{background:var(--bg3);}
+.hdr-menu{position:relative;}
+.hdr-dropdown{display:none;position:absolute;top:42px;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:12px;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:200;overflow:hidden;}
+.hdr-dropdown.open{display:block;}
+.hdr-dropdown button{display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;text-align:left;border-bottom:1px solid var(--border);}
+.hdr-dropdown button:last-child{border-bottom:none;}
+.hdr-dropdown button:hover{background:var(--bg3);}
+.hdr-dropdown .drop-icon{font-size:18px;width:22px;text-align:center;}
 
 /* ── NAV ── */
-.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);display:flex;border-top:1px solid var(--border);z-index:100;}
-.nav button{flex:1;padding:10px 4px;border:none;background:transparent;color:var(--text2);font-size:10px;cursor:pointer;transition:color .2s;}
+.nav{background:var(--bg2);display:flex;border-top:1px solid var(--border);z-index:100;flex-shrink:0;}
+.nav button{flex:1;padding:7px 4px;border:none;background:transparent;color:var(--text2);font-size:9px;cursor:pointer;transition:color .2s;}
 .nav button.active{color:var(--accent);font-weight:bold;}
 
 /* ── CONTENT ── */
-.content{padding:14px;}
+.content{padding:10px 12px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;}
 .page{display:none;} .page.active{display:block;}
 
 /* ── CARDS ── */
-.card{background:var(--bg2);padding:14px;border-radius:10px;margin-bottom:10px;border:1px solid var(--border);}
+.card{background:var(--bg2);padding:10px;border-radius:10px;margin-bottom:8px;border:1px solid var(--border);}
 .card-title{font-weight:bold;color:var(--accent);margin-bottom:5px;}
 .card-actions{display:flex;gap:8px;margin-top:10px;}
 .card-actions button{flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:bold;}
 
 /* ── STATS ── */
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
-.stat-box{background:var(--bg2);padding:14px;border-radius:10px;text-align:center;border:1px solid var(--border);}
-.stat-num{font-size:28px;font-weight:bold;color:var(--accent);}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.stat-box{background:var(--bg2);padding:10px;border-radius:10px;text-align:center;border:1px solid var(--border);}
+.stat-num{font-size:22px;font-weight:bold;color:var(--accent);}
 .stat-label{font-size:12px;color:var(--text2);margin-top:4px;}
 
 /* ── BUTTONS ── */
-.btn{width:100%;padding:14px;background:var(--accent);color:#0f1923;border:none;border-radius:9px;font-size:15px;font-weight:bold;margin-bottom:10px;cursor:pointer;}
+.btn{width:100%;padding:11px;background:var(--accent);color:#0f1923;border:none;border-radius:9px;font-size:14px;font-weight:bold;margin-bottom:8px;cursor:pointer;}
 .btn:active{background:var(--accent2);}
 .btn-success{background:var(--green);color:white;}
 .btn-success:active{background:var(--green2);}
@@ -75,9 +83,9 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);padding
 .btn-gray{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
 
 /* ── FORM ── */
-.form-group{margin-bottom:14px;}
+.form-group{margin-bottom:10px;}
 .form-group label{display:block;margin-bottom:6px;font-size:13px;font-weight:bold;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
-.form-group input,.form-group select,.form-group textarea{width:100%;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:15px;color:var(--text);outline:none;}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);outline:none;}
 .form-group input:focus,.form-group select,.form-group textarea:focus{border-color:var(--accent);}
 .form-group select option{background:var(--bg3);}
 
@@ -98,7 +106,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);padding
 .modal-box{background:var(--bg2);width:92%;max-width:520px;max-height:90vh;overflow-y:auto;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);}
 .modal-header{padding:16px;border-bottom:1px solid var(--border);font-weight:bold;font-size:17px;display:flex;justify-content:space-between;align-items:center;color:var(--accent);}
 .modal-header button{border:none;background:none;color:var(--text2);font-size:26px;cursor:pointer;line-height:1;}
-.modal-body{padding:16px;}
+.modal-body{padding:12px;}
 .modal-footer{padding:14px;border-top:1px solid var(--border);display:flex;gap:10px;}
 
 /* ── EQUIPMENT CHECK ── */
@@ -208,21 +216,26 @@ input[type="file"]{display:none;}
 </div>
 
 <!-- MAIN APP -->
-<div id="mainApp" style="display:none;">
+<div id="mainApp" style="display:none;flex-direction:column;height:100%;height:100dvh;overflow:hidden;">
   <div class="header">
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:6px;">
       <div class="header-title">🚐 Din-Biltjek</div>
-      <div id="syncStatus" title="Firebase sync status" style="font-size:18px;cursor:pointer;" onclick="showFirebaseSettings()">⚫</div>
+      <div id="syncStatus" title="Firebase" style="font-size:15px;cursor:pointer;margin-left:2px;" onclick="showFirebaseSettings()">⚫</div>
     </div>
-    <div style="display:flex;gap:8px;">
-      <button class="icon-btn" onclick="openGlobalSearch()" title="Søg i hele appen">🔍</button>
-      <button class="icon-btn" onclick="showFirebaseSettings()" title="Firebase indstillinger">☁️</button>
-      <button class="icon-btn" onclick="showChangePassword()" title="Skift kode">🔑</button>
-      <button class="icon-btn" onclick="exportData()" title="Eksporter backup">💾</button>
-      <button class="icon-btn" onclick="document.getElementById('importFleet').click()" title="Importer Fleet XLS">🚛</button>
-      <button class="icon-btn" onclick="document.getElementById('importStaff').click()" title="Importer medarbejdere XLSX">👥</button>
-      <button class="icon-btn" onclick="document.getElementById('importFile').click()" title="Importer backup">📂</button>
-      <button class="icon-btn" onclick="doLogout()" title="Log ud">🚪</button>
+    <div style="display:flex;align-items:center;gap:2px;">
+      <button class="icon-btn" onclick="openGlobalSearch()" title="Søg">🔍</button>
+      <div class="hdr-menu">
+        <button class="icon-btn" onclick="toggleHdrMenu()" id="hdrMenuBtn" title="Menu">☰</button>
+        <div class="hdr-dropdown" id="hdrDropdown">
+          <button onclick="showFirebaseSettings();closeHdrMenu()"><span class="drop-icon">☁️</span>Firebase sync</button>
+          <button onclick="showChangePassword();closeHdrMenu()"><span class="drop-icon">🔑</span>Skift kode</button>
+          <button onclick="exportData();closeHdrMenu()"><span class="drop-icon">💾</span>Eksporter backup</button>
+          <button onclick="document.getElementById('importFleet').click();closeHdrMenu()"><span class="drop-icon">🚛</span>Importer Fleet XLS</button>
+          <button onclick="document.getElementById('importStaff').click();closeHdrMenu()"><span class="drop-icon">👥</span>Importer medarbejdere</button>
+          <button onclick="document.getElementById('importFile').click();closeHdrMenu()"><span class="drop-icon">📂</span>Importer backup</button>
+          <button onclick="doLogout();closeHdrMenu()" style="color:var(--red);"><span class="drop-icon">🚪</span>Log ud</button>
+        </div>
+      </div>
     </div>
   </div>
   <!-- Firebase settings panel (hidden by default) -->
@@ -645,6 +658,22 @@ input[type="file"]{display:none;}
 <div id="toast" class="toast"></div>
 
 <script>
+// ── HEADER MENU ──
+function toggleHdrMenu(){
+  var d=document.getElementById('hdrDropdown');
+  d.classList.toggle('open');
+}
+function closeHdrMenu(){
+  document.getElementById('hdrDropdown').classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var menu=document.getElementById('hdrDropdown');
+  var btn=document.getElementById('hdrMenuBtn');
+  if(menu&&btn&&!menu.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)){
+    menu.classList.remove('open');
+  }
+});
+
 // ── FALLBACK STUBS (hvis CDN scripts fejler) ──
 (function(){
   if(typeof firebase==='undefined'){
@@ -756,7 +785,7 @@ function checkAutoLogin(){
   if(localStorage.getItem('dinBiltjekSession')==='1'){
     isLoggedIn=true;
     document.getElementById('loginScreen').style.display='none';
-    document.getElementById('mainApp').style.display='block';
+    document.getElementById('mainApp').style.display='flex';
     loadData();
     registerServiceWorker();
   }

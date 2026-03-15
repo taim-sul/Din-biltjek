@@ -1904,9 +1904,9 @@ function loadReminders(){
       if(waitCount)h+='<span style="background:#9c27b0;color:white;border-radius:10px;padding:2px 8px;font-size:11px;">⏸️ '+waitCount+' afventer</span>';
       if(openCount)h+='<span style="background:var(--accent);color:#0f1923;border-radius:10px;padding:2px 8px;font-size:11px;">'+openCount+' åben</span>';
       else h+='<span style="background:var(--green);color:white;border-radius:10px;padding:2px 8px;font-size:11px;">✓ Alt OK</span>';
-      h+='<span style="color:var(--text3);font-size:16px;" id="arr_'+collapseId+'">▼</span>';
+      h+='<span style="color:var(--text3);font-size:16px;" id="arr_'+collapseId+'">▶</span>';
       h+='</div></div>';
-      h+='<div id="'+collapseId+'" style="display:'+(overdueCount>0||openCount>0?'block':'none')+';">';
+      h+='<div id="'+collapseId+'" style="display:none;">';
       grp.forEach(function(r){h+=renderCard(r);});
       h+='</div></div>';
     });
@@ -1915,9 +1915,9 @@ function loadReminders(){
       h+='<div style="margin-bottom:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">';
       h+='<div onclick="toggleGroup(\''+collapseId2+'\')" style="background:var(--bg3);padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">';
       h+='<div style="font-weight:bold;color:var(--text);">📋 Generelle alarmer</div>';
-      h+='<span style="color:var(--text3);font-size:16px;" id="arr_'+collapseId2+'">▼</span>';
+      h+='<span style="color:var(--text3);font-size:16px;" id="arr_'+collapseId2+'">▶</span>';
       h+='</div>';
-      h+='<div id="'+collapseId2+'" style="display:block;">';
+      h+='<div id="'+collapseId2+'" style="display:none;">';
       noVehicle.forEach(function(r){h+=renderCard(r);});
       h+='</div></div>';
     }
@@ -2338,6 +2338,67 @@ function buildPDFBlob(cs){
         doc.text(line||' ',14,y);
         y+=isBold?6:4.5;
       });
+
+      // ── SKADEDIAGRAM SIDER ──
+      var checksWithDmg=cs.filter(function(c){return(c.damages||[]).length>0;});
+      checksWithDmg.forEach(function(c){
+        doc.addPage();
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(12);
+        doc.text('Skadediagram \u2013 '+c.vehicle,105,16,{align:'center'});
+        doc.setFontSize(9);
+        doc.setFont('helvetica','normal');
+        doc.text('Chauff\u00f8r: '+c.driver+'   Dato: '+fmtDate(c.date),105,23,{align:'center'});
+        var imgData=c.vtype==='chassis'?IMG_LUT:IMG_SPR;
+        var imgX=20;var imgY=28;var imgW=170;var imgH=85;
+        doc.addImage(imgData,'JPEG',imgX,imgY,imgW,imgH);
+        // Bug 1 fix: use sequential number (i+1), not dm.label (which is description text)
+        c.damages.forEach(function(dm,i){
+          var num=String(i+1);
+          var px=imgX+(dm.x/100)*imgW;
+          var py=imgY+(dm.y/100)*imgH;
+          doc.setFillColor(220,50,50);
+          doc.setDrawColor(255,255,255);
+          doc.setLineWidth(0.5);
+          doc.circle(px,py,4,'FD');
+          doc.setTextColor(255,255,255);
+          doc.setFontSize(7);
+          doc.setFont('helvetica','bold');
+          doc.text(num,px,py+0.3,{align:'center',baseline:'middle'});
+          // Bug 4 fix: reset draw color and text color after each pin
+          doc.setTextColor(0,0,0);
+          doc.setDrawColor(0,0,0);
+          doc.setLineWidth(0.2);
+        });
+        var legY=imgY+imgH+8;
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(9);
+        doc.text('Skader:',14,legY);
+        legY+=5;
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(8.5);
+        // Bug 2 fix: legend shows number + full description, not label+desc (redundant)
+        c.damages.forEach(function(dm,i){
+          var num=String(i+1);
+          doc.setFillColor(220,50,50);
+          doc.setDrawColor(255,255,255);
+          doc.setLineWidth(0.5);
+          doc.circle(17,legY-1.5,2,'FD');
+          doc.setTextColor(255,255,255);
+          doc.setFontSize(6);
+          doc.setFont('helvetica','bold');
+          doc.text(num,17,legY-1.5,{align:'center',baseline:'middle'});
+          doc.setTextColor(0,0,0);
+          doc.setDrawColor(0,0,0);
+          doc.setLineWidth(0.2);
+          doc.setFont('helvetica','normal');
+          doc.setFontSize(8.5);
+          doc.text(num+'.  '+dm.desc,22,legY);
+          legY+=5.5;
+          if(legY>pageH){doc.addPage();legY=15;}
+        });
+      });
+
       var blob=doc.output('blob');
       var filename='biltjek-rapport-'+new Date().toISOString().split('T')[0]+'.pdf';
       resolve({blob:blob,filename:filename});
@@ -2381,27 +2442,32 @@ function shareReportWhatsApp(mode){
     var file=new File([blob],filename,{type:'application/pdf'});
 
     // MOBILE: try native share with PDF attached
-    if(isMobile() && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+    var canShareFiles = !!(navigator.canShare && navigator.canShare({files:[file]}));
+    if(isMobile() && navigator.share && canShareFiles){
       navigator.share({
         title:'Din-Biltjek Rapport',
         text:'Biltjek-rapport fra Din-Biltjek',
         files:[file]
       }).catch(function(err){
         if(err.name!=='AbortError'){
-          // Fallback: download + open WhatsApp
+          // Fallback: download + open WhatsApp app link
           downloadBlob(blob,filename);
           setTimeout(function(){
-            window.open('https://wa.me/?text='+encodeURIComponent('Hej! Se biltjek-rapport vedhæftet: '+filename),'_blank');
+            window.open('https://wa.me/?text='+encodeURIComponent('Hej! Se biltjek-rapport vedhæftet 📎'),'_blank');
             showToast('PDF gemt – vedhæft filen i WhatsApp 📎',true);
           },900);
         }
       });
-    } else {
-      // DESKTOP (or mobile without Share API):
-      // 1) auto-download PDF
+    } else if(isMobile()){
+      // Samsung / Android fallback: download PDF then open WhatsApp app
       downloadBlob(blob,filename);
-      // 2) open WhatsApp with instruction message
-      var msg='Hej! 👋\n\nJeg sender dig biltjek-rapporten fra Din-Biltjek.\n📎 Fil: '+filename+'\n\n(Vedhæft den downloadede PDF-fil i denne chat)';
+      setTimeout(function(){
+        window.open('https://wa.me/?text='+encodeURIComponent('Hej! Her er biltjek-rapporten 📎 (vedhæft: '+filename+')'),'_blank');
+        showToast('✅ PDF gemt – vedhæft filen i WhatsApp 📎',true);
+      },1200);
+    } else {
+      // DESKTOP: download PDF + open WhatsApp Web
+      downloadBlob(blob,filename);
       setTimeout(function(){
         window.open('https://web.whatsapp.com/','_blank');
         showToast('✅ PDF downloadet! Åbn WhatsApp og vedhæft filen 📎',true);
@@ -2424,7 +2490,8 @@ function shareReportEmail(){
     var file=new File([blob],filename,{type:'application/pdf'});
 
     // MOBILE: try native share with PDF (triggers mail app with attachment on iOS/Android)
-    if(isMobile() && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+    var canShareFiles = !!(navigator.canShare && navigator.canShare({files:[file]}));
+    if(isMobile() && navigator.share && canShareFiles){
       navigator.share({
         title:'Din-Biltjek Rapport',
         text:'Biltjek-rapport fra Din-Biltjek. Se vedhæftet PDF.',
@@ -2436,6 +2503,13 @@ function shareReportEmail(){
           setTimeout(function(){ openMailto(filename); },900);
         }
       });
+    } else if(isMobile()){
+      // Samsung / Android fallback: download then open mailto
+      downloadBlob(blob,filename);
+      setTimeout(function(){
+        openMailto(filename);
+        showToast('✅ PDF gemt – vedhæft filen i din mail 📎',true);
+      },1200);
     } else {
       // DESKTOP: auto-download PDF first, then open mailto
       downloadBlob(blob,filename);
